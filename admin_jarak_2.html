@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Jarak 1 - Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #003366, #0055a5); /* Biru Teknik Unila */
+      margin: 0;
+      padding: 20px;
+      color: #fff;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(6px);
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #e6f0ff;
+    }
+
+    canvas {
+      margin-top: 20px;
+    }
+
+    #statusList {
+      margin-top: 20px;
+      background: rgba(0,0,0,0.3);
+      padding: 15px;
+      border-radius: 10px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .status-item {
+      margin: 5px 0;
+      font-size: 14px;
+      padding: 6px;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    // ✅ Prevent akses selain admin_jarak_2
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+
+    if (!token || role !== "admin_jarak_2") {
+      alert("Akses ditolak! Halaman ini hanya untuk Admin Jarak 1.");
+      window.location.href = "login.html"; // redirect ke login
+    }
+  </script>
+
+  <div class="container">
+    <h1>Dashboard Admin Jarak 1</h1>
+    <canvas id="distanceChart" height="120"></canvas>
+
+    <div id="statusList">
+      <h3>Status Data</h3>
+      <div id="statusItems">Loading data...</div>
+    </div>
+  </div>
+
+  <script>
+    async function fetchData() {
+      try {
+        const res = await fetch("http://localhost:3000/api/distance_2", {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          document.getElementById("statusItems").textContent = data.message || "Gagal mengambil data!";
+          return;
+        }
+
+        renderChart(data);
+      } catch (err) {
+        console.error(err);
+        document.getElementById("statusItems").textContent = "Terjadi kesalahan saat mengambil data!";
+      }
+    }
+
+    function renderChart(data) {
+      const labels = data.map(d => new Date(d.created_at).toLocaleString());
+      const jarak = data.map(d => d.jarak);
+      const status = data.map(d => d.status);
+
+      const statusColors = status.map(s => {
+        if (s === "JAUH") return "red";
+        if (s === "SEDANG") return "yellow";
+        return "green";
+      });
+
+      // Chart.js
+      const ctx = document.getElementById('distanceChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Jarak (cm)',
+            data: jarak,
+            borderColor: '#00bfff',
+            tension: 0.3,
+            fill: false,
+            pointRadius: 6,
+            pointBackgroundColor: statusColors
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: true },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const index = context.dataIndex;
+                  return `Jarak: ${jarak[index]} cm (${status[index]})`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: { display: true, text: "Jarak (cm)" }
+            },
+            x: {
+              title: { display: true, text: "Waktu" }
+            }
+          }
+        }
+      });
+
+      // Daftar status
+      const statusItemsEl = document.getElementById("statusItems");
+      statusItemsEl.innerHTML = "";
+      data.forEach((item, i) => {
+        const div = document.createElement("div");
+        div.classList.add("status-item");
+        div.style.background = "rgba(255,255,255,0.1)";
+        div.innerHTML = `<b>${new Date(item.created_at).toLocaleString()}</b> → 
+                         ${item.jarak} cm → 
+                         <span style="color:${statusColors[i]}">${item.status}</span>`;
+        statusItemsEl.appendChild(div);
+      });
+    }
+
+    fetchData();
+  </script>
+</body>
+</html>

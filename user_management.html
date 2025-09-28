@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Management</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #003366, #0055a5); /* Biru Teknik Unila */
+      margin: 0;
+      padding: 20px;
+      color: white;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+      color: #fff;
+    }
+
+    table th {
+      background: #004080;
+    }
+
+    .logout-btn {
+      background: #ff4d4d;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 15px;
+      float: right;
+    }
+
+    .back-btn {
+      background: #00bfff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 15px;
+      margin-right: 10px;
+      float: right;
+    }
+
+    .back-btn:hover{
+      background: #40accf;
+      transition: all;
+      transition-duration: 300ms;
+    }
+
+    .logout-btn:hover {
+      background: #cc0000;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="logout-btn" onclick="logout()">Logout</button>
+    <button class='back-btn' onclick="back()">Back</button>
+    <h1>User & Log Management</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>ID User</th>
+          <th>Username</th>
+          <th>Role</th>
+          <th>IP Address</th>
+          <th>Log</th>
+        </tr>
+      </thead>
+      <tbody id="userTableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    // decode JWT untuk ambil role
+    function parseJwt(token) {
+      try {
+        return JSON.parse(atob(token.split('.')[1]));
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function checkAccess() {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Silakan login terlebih dahulu!");
+        window.location.href = "login.html";
+        return;
+      }
+
+      const user = parseJwt(token);
+      if (!user || user.role !== "super_admin") {
+        alert("Anda tidak punya akses ke halaman ini!");
+        window.location.href = "login.html";
+      }
+    }
+
+    async function loadUsers() {
+      const token = localStorage.getItem("token");
+      try {
+        const res = await fetch("http://localhost:3000/api/user", {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.message || "Gagal mengambil data!");
+          return;
+        }
+
+        const tbody = document.getElementById("userTableBody");
+        tbody.innerHTML = "";
+
+        data.data.forEach(user => {
+          const row = `
+            <tr>
+              <td>${user.id_user}</td>
+              <td>${user.username}</td>
+              <td>${user.role}</td>
+              <td>${user.ip_address || "-"}</td>
+              <td>${user.created_at || "-"}</td>
+            </tr>
+          `;
+          tbody.innerHTML += row;
+        });
+      } catch (err) {
+        console.error(err);
+        alert("Terjadi kesalahan saat fetch data!");
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      localStorage.removeItem("role");
+      alert("Anda telah logout.");
+      window.location.href = "login.html";
+    }
+
+    function back(){
+        window.location.href = "super_admin.html";
+    }
+
+    // eksekusi saat page load
+    checkAccess();
+    loadUsers();
+  </script>
+</body>
+</html>
