@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Detail</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg,#003366,#0055a5);
+      color: white;
+      display: flex;
+      justify-content: center;
+      margin:0;
+      padding:0;
+    }
+    .container {
+      width: 60%;
+      min-width:300px;
+      margin:20px 0;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(8px);
+      padding:20px;
+      border-radius:15px;
+      box-shadow:0 8px 20px rgba(0,0,0,0.3);
+    }
+    h1,h2 { text-align:center; margin-bottom:20px; }
+    table {
+      width:100%;
+      border-collapse: collapse;
+      margin-top:15px;
+      background: rgba(255,255,255,0.2);
+    }
+    th, td {
+      border:1px solid #ddd;
+      padding:10px;
+      text-align:center;
+      color:white;
+    }
+    th { background:#004080; }
+    button {
+      padding:6px 12px;
+      border-radius:6px;
+      border:none;
+      cursor:pointer;
+      margin:2px;
+      font-weight:bold;
+    }
+    .back-btn { background:#00bfff; color:white; float:right; }
+    .back-btn:hover { background:#40accf; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="back-btn" onclick="back()">Back</button>
+    <h1>User Detail</h1>
+    <h2 id="usernameTitle"></h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID Log</th>
+          <th>IP Address</th>
+          <th>Login Time</th>
+        </tr>
+      </thead>
+      <tbody id="logTableBody"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const roleMap = { user:"Admin Jarak 1", admin:"Admin Jarak 2", super_admin:"Super Admin" };
+
+    function parseJwt(token) {
+      try { return JSON.parse(atob(token.split('.')[1])); } 
+      catch(e){ return null; }
+    }
+
+    function checkAccess() {
+      const token = localStorage.getItem("token");
+      if(!token){ alert("Silakan login!"); window.location.href="login.html"; return; }
+      const user = parseJwt(token);
+      if(!user || user.role!=="super_admin"){ alert("Tidak punya akses!"); window.location.href="login.html"; }
+    }
+
+    function back(){ window.location.href="user_management.html"; }
+
+    function formatDateTime(datetimeStr){
+      if(!datetimeStr) return "-";
+      const d = new Date(datetimeStr);
+      return d.toLocaleString('id-ID', {
+        year:'numeric', month:'2-digit', day:'2-digit',
+        hour:'2-digit', minute:'2-digit', second:'2-digit'
+      });
+    }
+
+    async function loadUserDetail() {
+      const userId = localStorage.getItem("detailUserId");
+      const token = localStorage.getItem("token");
+      if(!userId){ alert("User tidak ditemukan"); back(); return; }
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/user/${userId}`, {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
+        if(!res.ok){ alert(data.message || "Gagal fetch data user"); return; }
+
+        const userData = data.data[0];
+        document.getElementById("usernameTitle").textContent = 
+          `Username: ${userData.username} (${roleMap[userData.role]})`;
+
+        const tbody = document.getElementById("logTableBody");
+        tbody.innerHTML = "";
+
+        // ambil log user dari API (dari join log)
+        const logRes = await fetch(`http://localhost:3000/api/user/${userId}`, {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const logData = await logRes.json();
+        if(!logRes.ok){ alert(logData.message || "Gagal fetch log"); return; }
+
+        logData.data.forEach(log => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${log.id_log}</td>
+              <td>${log.ip_address || "-"}</td>
+              <td>${formatDateTime(log.created_at)}</td>
+            </tr>
+          `;
+        });
+
+      } catch(err){ console.error(err); alert("Terjadi kesalahan saat fetch data user"); }
+    }
+
+    checkAccess();
+    loadUserDetail();
+  </script>
+</body>
+</html>

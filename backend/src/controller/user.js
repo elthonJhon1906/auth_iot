@@ -2,7 +2,7 @@ import { SECRET_JWT } from "../config/config.js";
 import db from "../config/db.js"
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
-export const authController = {
+export const userController = {
     register: async(req, res) => {
 
     const {username, password, role} = req.body;
@@ -13,13 +13,14 @@ export const authController = {
     const sql = "INSERT INTO user (username, password, role) VALUES (?, ?, ?)";
     db.query(sql, [username, hashedPassword, role], (err, result) =>{
         if(err) {
+            console.error("SQL Error:", err);  // <-- Tambahkan ini
             return res.status(500).json({
                 error : err
             })
         }
         res.json({message : 'user registered', id_user: result.insertId})
     })
-},
+  },
 
     login: async (req, res) => {
     const { username, password } = req.body;
@@ -55,9 +56,11 @@ export const authController = {
     });
   },
 
-  findAll: async(req, res) =>{
-       const sql = `
-    SELECT 
+  findLog: async(req, res) =>{
+
+    const id = parseInt(req.params.id);
+    const sql = `
+      SELECT 
       u.id_user,
       u.username,
       u.role,
@@ -66,16 +69,53 @@ export const authController = {
       l.created_at
     FROM user u
     LEFT JOIN log l ON u.id_user = l.id_user
-    ORDER BY u.id_user ASC, l.created_at DESC
+    WHERE u.id_user = ?
+    ORDER BY l.created_at DESC;
   `;;
         
-       db.query(sql, (err, result) =>{
+       db.query(sql, id, (err, result) =>{
         if(err){
             return res.status(500).json({error: err});
         }
-        res.json({message: "Data GET Successfully",
+        res.status(200).json({message: "Data GET Successfully",
             data: result
         })
        })
+    },
+
+    findAll: async(req, res) =>{
+      const sql = "SELECT id_user, username, role FROM user";
+
+      db.query(sql, (err, result) =>{
+        if(err){
+          return res.status(500).json({error: err})
+        }
+
+        res.status(200).json({message: "Data GET Successfully", data: result})
+      })
+    },
+
+    update: async(req, res) =>{
+      const id = parseInt(req.params.id);
+      const {username, role} = req.body;
+      const sql = "UPDATE user SET username = ?, role = ? where id_user = ? ";
+      
+      if(!username || !role){
+        return res.status(400).json({message: "field tidak boleh kosong"})
+      }
+
+      const params = [username, role];
+
+      db.query(sql, params, (err, result) =>{
+        if(err){
+          return res.status(500).json({error : err})
+        }
+
+        if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "User tidak ditemukan" });
+      }
+
+       res.status(200).json({ message: "User berhasil diperbarui" });
+      })
     }
 }

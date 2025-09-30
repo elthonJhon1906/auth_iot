@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel - User Management</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #003366, #0055a5);
+      margin: 0;
+      padding: 0;
+      color: white;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 60%;
+      min-width: 300px;
+      margin: 20px 0;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    #userTableBody tr:hover {
+    background-color: rgba(11, 115, 184, 0.568); /* biru transparan */
+    cursor: pointer; /* menunjukkan bisa diklik */
+    transition: background-color 0.3s ease;
+  }
+
+    h1 { text-align: center; margin-bottom: 20px; color: #ffffff; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; background: rgba(255,255,255,0.2); }
+    table th, table td { border: 1px solid #ddd; padding: 10px; text-align: center; color: #fff; }
+    table th { background: #004080; }
+    button { padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; margin: 2px; font-weight: bold; }
+    .logout-btn { background: #ff4d4d; color: white; float: right; }
+    .logout-btn:hover { background: #cc0000; }
+    .back-btn { background: #00bfff; color: white; float: right; margin-right: 10px; }
+    .back-btn:hover { background: #40accf; }
+    .add-btn { background: #28a745; color: white; }
+    .edit-btn { background: #ffc107; color: white; }
+    .delete-btn { background: #dc3545; color: white; }
+
+    .form-container { margin: 20px 0; background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; }
+    .form-container h3 { margin-top: 0; color: #ffffff; }
+    input, select { width: 100%; padding: 8px; margin: 5px 0; border-radius: 5px; border: none; }
+
+    .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 1000; }
+    .modal-content { background: #003366; padding: 20px; border-radius: 10px; width: 80%; max-width: 400px; text-align: center; }
+    .modal input, .modal select { width: 90%; margin-bottom: 10px; padding: 8px; }
+    .modal button { width: 45%; margin: 5px 2%; }
+
+    @media screen and (max-width: 768px) {
+      .container { width: 90%; }
+      table, thead, tbody, th, td, tr { display: block; }
+      table th { text-align: left; }
+      table td { text-align: left; padding-left: 50%; position: relative; }
+      table td::before { content: attr(data-label); position: absolute; left: 10px; font-weight: bold; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <button class="logout-btn" onclick="logout()">Logout</button>
+    <button class='back-btn' onclick="back()">Back</button>
+    <h1>Admin Panel - User Management</h1>
+
+    <div class="form-container">
+      <h3>Tambah User</h3>
+      <input type="text" id="newUsername" placeholder="Username" required>
+      <input type="password" id="newPassword" placeholder="Password" required>
+      <select id="newRole">
+        <option value="admin_jarak_1">Admin Jarak 1</option>
+        <option value="admin_jarak_2">Admin Jarak 2</option>
+        <option value="super_admin">Super Admin</option>
+      </select>
+      <button class="add-btn" onclick="addUser()">Tambah</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Username</th>
+          <th>Role</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody class="userTable" id="userTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <h3>Edit User</h3>
+      <input type="text" id="editUsername" placeholder="Username">
+      <select id="editRole">
+        <option value="user">Admin Jarak 1</option>
+        <option value="admin">Admin Jarak 2</option>
+        <option value="super_admin">Super Admin</option>
+      </select>
+      <div>
+        <button onclick="saveEdit()" class="edit-btn">Simpan</button>
+        <button onclick="closeModal()" class="delete-btn">Batal</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let editUserId = null;
+
+    function parseJwt(token) {
+      try { return JSON.parse(atob(token.split('.')[1])); } 
+      catch(e){ return null; }
+    }
+
+    // mapping value ke tampilan
+    const roleMap = {
+      user: "Admin Jarak 1",
+      admin: "Admin Jarak 2",
+      super_admin: "Super Admin"
+    };
+
+    function formatRole(role) {
+      return roleMap[role] || role;
+    }
+
+    function checkAccess() {
+      const token = localStorage.getItem("token");
+      if (!token) { alert("Silakan login terlebih dahulu!"); window.location.href = "login.html"; return; }
+      const user = parseJwt(token);
+      if (!user || user.role !== "super_admin") { alert("Anda tidak punya akses ke halaman ini!"); window.location.href = "login.html"; }
+    }
+
+    async function loadUsers() {
+      const token = localStorage.getItem("token");
+      try {
+        const res = await fetch("http://localhost:3000/api/user", {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
+        const tbody = document.getElementById("userTableBody");
+        tbody.innerHTML = "";
+        data.data.forEach(user => {
+        tbody.innerHTML += `
+          <tr onclick="viewUserDetail(${user.id_user})" style="cursor:pointer;">
+            <td data-label="ID">${user.id_user}</td>
+            <td data-label="Username">${user.username}</td>
+            <td data-label="Role">${formatRole(user.role)}</td>
+            <td data-label="Aksi">
+              <button class="edit-btn" onclick="event.stopPropagation(); openEditModal(${user.id_user}, '${user.username}', '${user.role}')">Edit</button>
+              <button class="delete-btn" onclick="event.stopPropagation(); deleteUser(${user.id_user})">Hapus</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      } catch(err) { console.error(err); alert("Terjadi kesalahan saat fetch data!"); }
+    }
+
+    async function addUser() {
+      const username = document.getElementById("newUsername").value;
+      const password = document.getElementById("newPassword").value;
+      const role = document.getElementById("newRole").value;
+      const token = localStorage.getItem("token");
+
+      try {
+        const res = await fetch("http://localhost:3000/api/user/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify({ username, password, role })
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.message || "Gagal menambahkan user!"); return; }
+        alert("User berhasil ditambahkan!");
+        loadUsers();
+      } catch(err) { console.error(err); alert("Terjadi kesalahan saat menambahkan user!"); }
+    }
+
+      function viewUserDetail(userId) {
+      // Simpan id_user ke localStorage agar bisa diakses di halaman detail
+      localStorage.setItem("detailUserId", userId);
+      window.location.href = "user_detail.html";
+    }
+
+    function openEditModal(id, username, role) {
+      editUserId = id;
+      document.getElementById("editUsername").value = username;
+      document.getElementById("editRole").value = role;
+      document.getElementById("editModal").style.display = "flex";
+    }
+
+    function closeModal() { document.getElementById("editModal").style.display = "none"; }
+
+    async function saveEdit() {
+      const username = document.getElementById("editUsername").value;
+      const role = document.getElementById("editRole").value;
+      const token = localStorage.getItem("token");
+
+      try {
+        const res = await fetch(`http://localhost:3000/api/user/${editUserId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+          body: JSON.stringify({ username, role })
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.message || "Gagal update user!"); return; }
+        alert("User berhasil diperbarui!");
+        closeModal();
+        loadUsers();
+      } catch(err) { console.error(err); alert("Terjadi kesalahan saat update user!"); }
+    }
+
+    async function deleteUser(id) {
+      if (!confirm("Apakah Anda yakin ingin menghapus user ini?")) return;
+      const token = localStorage.getItem("token");
+      try {
+        const res = await fetch(`http://localhost:3000/api/user/${id}`, {
+          method: "DELETE",
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.message || "Gagal menghapus user!"); return; }
+        alert("User berhasil dihapus!");
+        loadUsers();
+      } catch(err) { console.error(err); alert("Terjadi kesalahan saat menghapus user!"); }
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      alert("Anda telah logout.");
+      window.location.href = "login.html";
+    }
+
+    function back() { window.location.href = "super_admin.html"; }
+
+    checkAccess();
+    loadUsers();
+  </script>
+</body>
+</html>
