@@ -7,13 +7,14 @@ import controller from "./src/routes/controller.js"
 import user from "./src/routes/user.js"
 const app = express();
 app.use(bodyParser.json());
+app.set('trust proxy', true);
 
 // izinkan semua origin
 app.use(cors());
 
 // atau kalau mau lebih spesifik:
 app.use(cors({
-  origin: ["http://localhost:5500", "http://127.0.0.1:5500"]
+  origin: ["http://localhost:5500", "http://127.0.0.1:5500", "http://192.168.1.16:5500"]
 }));
 
 

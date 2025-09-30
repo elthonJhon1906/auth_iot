@@ -37,11 +37,12 @@ export const userController = {
       if (!validPassword) return res.status(401).json({ message: "Password incorrect" });
 
       // Ambil IP user
-      const userIP = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+      let userIp = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+      if(userIp === '::1') userIp = '127.0.0.1';
 
       // Insert ke tabel log
       const logSql = "INSERT INTO log (id_user, ip_address) VALUES (?, ?)";
-      db.query(logSql, [user.id_user, userIP], (err2, logResult) => {
+      db.query(logSql, [user.id_user, userIp], (err2, logResult) => {
         if (err2) console.error("Failed to log user login:", err2);
       });
 

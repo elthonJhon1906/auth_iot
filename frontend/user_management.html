@@ -138,7 +138,7 @@
     async function loadUsers() {
       const token = localStorage.getItem("token");
       try {
-        const res = await fetch("http://localhost:3000/api/user", {
+        const res = await fetch("http://192.168.1.16:3000/api/user", {
           headers: { "Authorization": "Bearer " + token }
         });
         const data = await res.json();
@@ -168,7 +168,7 @@
       const token = localStorage.getItem("token");
 
       try {
-        const res = await fetch("http://localhost:3000/api/user/register", {
+        const res = await fetch("http://192.168.1.16:3000/api/user/register", {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
           body: JSON.stringify({ username, password, role })
@@ -201,7 +201,7 @@
       const token = localStorage.getItem("token");
 
       try {
-        const res = await fetch(`http://localhost:3000/api/user/${editUserId}`, {
+        const res = await fetch(`http://192.168.1.16:3000/api/user/${editUserId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
           body: JSON.stringify({ username, role })
@@ -218,7 +218,7 @@
       if (!confirm("Apakah Anda yakin ingin menghapus user ini?")) return;
       const token = localStorage.getItem("token");
       try {
-        const res = await fetch(`http://localhost:3000/api/user/${id}`, {
+        const res = await fetch(`http://192.168.1.16:3000/api/user/${id}`, {
           method: "DELETE",
           headers: { "Authorization": "Bearer " + token }
         });

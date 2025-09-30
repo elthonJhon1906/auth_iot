@@ -96,7 +96,7 @@
   // Chart Jarak
   async function fetchData(endpoint, chartId) {
     try {
-      const res = await fetch(`http://localhost:3000/api/${endpoint}`, { headers: { "Authorization": `Bearer ${token}` } });
+      const res = await fetch(`http://192.168.1.16:3000/api/${endpoint}`, { headers: { "Authorization": `Bearer ${token}` } });
       const data = await res.json();
       if (!res.ok) { console.error(data.message || "Gagal fetch"); return; }
       renderChart(data, chartId);
@@ -123,7 +123,7 @@
   // Kontrol TV
   async function getTVStatus() {
     try {
-      const res = await fetch("http://localhost:3000/api/controller", { headers: { "Authorization": `Bearer ${token}` } });
+      const res = await fetch("http://192.168.1.16:3000/api/controller", { headers: { "Authorization": `Bearer ${token}` } });
       const data = await res.json();
       const status = data.tv_status;
       document.getElementById("tvStatus").innerText = status===1 ? "Hidup" : "Mati";
@@ -132,7 +132,7 @@
 
   async function setTV(value) {
     try {
-      const res = await fetch("http://localhost:3000/api/controller", {
+      const res = await fetch("http://192.168.1.16:3000/api/controller", {
         method:"POST",
         headers:{ "Content-Type":"application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ tv_status: value })

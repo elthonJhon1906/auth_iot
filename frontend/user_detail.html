@@ -98,7 +98,7 @@
       if(!userId){ alert("User tidak ditemukan"); back(); return; }
 
       try {
-        const res = await fetch(`http://localhost:3000/api/user/${userId}`, {
+        const res = await fetch(`http://192.168.1.16:3000/api/user/${userId}`, {
           headers: { "Authorization": "Bearer " + token }
         });
         const data = await res.json();
@@ -112,7 +112,7 @@
         tbody.innerHTML = "";
 
         // ambil log user dari API (dari join log)
-        const logRes = await fetch(`http://localhost:3000/api/user/${userId}`, {
+        const logRes = await fetch(`http://192.168.1.16:3000/api/user/${userId}`, {
           headers: { "Authorization": "Bearer " + token }
         });
         const logData = await logRes.json();
